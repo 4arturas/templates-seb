@@ -1,0 +1,115 @@
+###
+POST http://localhost:8080/api/freemarker/render?templateName=ttt
+Content-Type: application/json
+
+{
+  "title": "Welcome Page",
+  "heading": "Hello, World!",
+  "message": "This is a dynamic message generated using FreeMarker."
+}
+
+###
+POST http://localhost:8080/api/freemarker/render/json?templateName=complex
+Content-Type: application/json
+
+{
+  "title": "Complex Template Example",
+  "heading": "Welcome to the Complex Template",
+  "message": "This template demonstrates advanced FreeMarker features.",
+  "isLoggedIn": true,
+  "user": {
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "role": "admin"
+  },
+  "items": [
+    {
+      "name": "Laptop",
+      "price": 999.99,
+      "inStock": true,
+      "category": "electronics"
+    },
+    {
+      "name": "Book",
+      "price": 19.99,
+      "inStock": false,
+      "category": "books"
+    },
+    {
+      "name": "T-Shirt",
+      "price": 29.99,
+      "inStock": true,
+      "category": "clothing"
+    }
+  ],
+  "users": [
+    {
+      "name": "Alice",
+      "email": "alice@example.com",
+      "role": "admin"
+    },
+    {
+      "name": "Bob",
+      "email": "bob@example.com",
+      "role": "editor"
+    },
+    {
+      "name": "Charlie",
+      "email": "charlie@example.com",
+      "role": "user"
+    }
+  ]
+}
+
+###
+POST http://localhost:8080/api/freemarker/render/xml?templateName=complex
+Content-Type: application/xml
+
+<root>
+    <title>Complex Template Example</title>
+    <heading>Welcome to the Complex Template</heading>
+    <message>This template demonstrates advanced FreeMarker features.</message>
+    <isLoggedIn>true</isLoggedIn>
+    <user>
+        <name>John Doe</name>
+        <email>john.doe@example.com</email>
+        <role>admin</role>
+    </user>
+    <items>
+        <item>
+            <name>Laptop</name>
+            <price>999.99</price>
+            <inStock>true</inStock>
+            <category>electronics</category>
+        </item>
+        <item>
+            <name>Book</name>
+            <price>19.99</price>
+            <inStock>false</inStock>
+            <category>books</category>
+        </item>
+        <item>
+            <name>T-Shirt</name>
+            <price>29.99</price>
+            <inStock>true</inStock>
+            <category>clothing</category>
+        </item>
+    </items>
+    <users>
+        <user>
+            <name>Alice</name>
+            <email>alice@example.com</email>
+            <role>admin</role>
+        </user>
+        <user>
+            <name>Bob</name>
+            <email>bob@example.com</email>
+            <role>editor</role>
+        </user>
+        <user>
+            <name>Charlie</name>
+            <email>charlie@example.com</email>
+            <role>user</role>
+        </user>
+    </users>
+</root>
