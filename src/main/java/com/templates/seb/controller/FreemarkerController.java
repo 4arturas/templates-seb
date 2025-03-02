@@ -5,7 +5,11 @@ import com.templates.seb.service.TemplateService;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.json.JSONObject;
+import org.json.XML;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,45 +17,31 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Map;
 
-import java.util.*;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.ByteArrayInputStream;
-
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/freemarker")
 public class FreemarkerController {
 
-    private TemplateService templateService;
+    private static final Logger log = LoggerFactory.getLogger(FreemarkerController.class);
 
-    private Configuration freemarkerConfig;
+    private final TemplateService templateService;
+    private final Configuration freemarkerConfig;
 
     @PostMapping("/render/json")
     public ResponseEntity<String> renderTemplateWithJson(
             @RequestParam("templateName") String templateName,
             @RequestBody Map<String, Object> jsonData) {
-
+        log.info("Rendering template '{}' with JSON data", templateName);
         try {
-            TemplateEntity template = templateService.getTemplateByName(templateName);
-            if (template == null) {
-                return ResponseEntity.badRequest().body("Template not found: " + templateName);
-            }
-
-            Template freemarkerTemplate = new Template(templateName, template.getContent(), freemarkerConfig);
-
-            StringWriter stringWriter = new StringWriter();
-            freemarkerTemplate.process(jsonData, stringWriter);
-
-            return ResponseEntity.ok(stringWriter.toString());
-
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body("Error loading template: " + e.getMessage());
-        } catch (TemplateException e) {
-            return ResponseEntity.status(500).body("Error processing template: " + e.getMessage());
+            TemplateEntity template = getTemplate(templateName);
+            String result = processTemplate(template, jsonData);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            log.error("Validation error: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Error rendering template with JSON", e);
+            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
         }
     }
 
@@ -59,91 +49,55 @@ public class FreemarkerController {
     public ResponseEntity<String> renderTemplateWithXml(
             @RequestParam("templateName") String templateName,
             @RequestBody String xmlData) {
-
+        log.info("Rendering template '{}' with XML data", templateName);
         try {
-            TemplateEntity template = templateService.getTemplateByName(templateName);
-            if (template == null) {
-                return ResponseEntity.badRequest().body("Template not found: " + templateName);
-            }
-
+            TemplateEntity template = getTemplate(templateName);
             Map<String, Object> dataModel = parseXmlToMap(xmlData);
             if (dataModel == null || dataModel.isEmpty()) {
-                return ResponseEntity.badRequest().body("Invalid or empty XML data.");
+                throw new IllegalArgumentException("Invalid or empty XML data provided.");
             }
-
-            Template freemarkerTemplate = new Template(templateName, template.getContent(), freemarkerConfig);
-
-            StringWriter stringWriter = new StringWriter();
-            freemarkerTemplate.process(dataModel, stringWriter);
-
-            return ResponseEntity.ok(stringWriter.toString());
-
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body("Error loading template: " + e.getMessage());
-        } catch (TemplateException e) {
-            return ResponseEntity.status(500).body("Error processing template: " + e.getMessage());
+            String result = processTemplate(template, dataModel);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            log.error("Validation error: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error parsing XML data: " + e.getMessage());
+            log.error("Error rendering template with XML", e);
+            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
         }
+    }
+
+    private TemplateEntity getTemplate(String templateName) {
+        TemplateEntity template = templateService.getTemplateByName(templateName);
+        if (template == null || template.getContent() == null || template.getContent().isEmpty()) {
+            throw new IllegalArgumentException("Template not found or is empty: " + templateName);
+        }
+        log.debug("Template '{}' found with content: {}", templateName, template.getContent());
+        return template;
+    }
+
+    private String processTemplate(TemplateEntity templateEntity, Map<String, Object> dataModel) throws IOException, TemplateException {
+        Template freemarkerTemplate = new Template(templateEntity.getName(), templateEntity.getContent(), freemarkerConfig);
+        StringWriter stringWriter = new StringWriter();
+        freemarkerTemplate.process(dataModel, stringWriter);
+        String result = stringWriter.toString();
+        log.debug("Template processed successfully with result: {}", result);
+        return result;
     }
 
     private Map<String, Object> parseXmlToMap(String xmlData) {
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document document = builder.parse(new ByteArrayInputStream(xmlData.getBytes()));
-
-            Object result = parseNode(document.getDocumentElement());
-            if (result instanceof Map) {
-                return (Map<String, Object>) result;
-            } else {
-                Map<String, Object> rootMap = new HashMap<>();
-                rootMap.put(document.getDocumentElement().getNodeName(), result);
-                return rootMap;
+            log.debug("Parsing XML data: {}", xmlData);
+            JSONObject jsonObj = XML.toJSONObject(xmlData, true);
+            Map<String, Object> dataModel = jsonObj.toMap();
+            if (dataModel.containsKey("root")) {
+                dataModel = (Map<String, Object>) dataModel.get("root");
             }
+            log.debug("Flattened data model: {}", dataModel);
+            return dataModel;
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    private Object parseNode(org.w3c.dom.Node node) {
-        if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-            NodeList children = node.getChildNodes();
-            Map<String, Object> map = new HashMap<>();
-
-            for (int i = 0; i < children.getLength(); i++) {
-                org.w3c.dom.Node child = children.item(i);
-
-                if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-                    String key = child.getNodeName();
-                    Object value = parseNode(child);
-
-                    if (map.containsKey(key)) {
-                        Object existingValue = map.get(key);
-                        if (!(existingValue instanceof List)) {
-                            List<Object> list = new ArrayList<>();
-                            list.add(existingValue);
-                            map.put(key, list);
-                        }
-                        ((List<Object>) map.get(key)).add(value);
-                    } else {
-                        map.put(key, value);
-                    }
-                } else if (child.getNodeType() == org.w3c.dom.Node.TEXT_NODE) {
-                    return child.getTextContent().trim();
-                }
-            }
-
-            if (map.size() == 1 && map.containsKey("#text")) {
-                return map.get("#text");
-            }
-
-            return map;
-        } else if (node.getNodeType() == org.w3c.dom.Node.TEXT_NODE) {
-            return node.getTextContent().trim();
-        } else {
-            return null;
+            log.error("Error converting XML to Map", e);
+            throw new RuntimeException("Error converting XML to Map: " + e.getMessage(), e);
         }
     }
 }

@@ -32,9 +32,6 @@ public class TemplateBackupEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(nullable = false, length = 10)
-    private String actionType; // 'UPDATE' or 'DELETE'
-
     @Column(nullable = false)
     private LocalDateTime backedUpAt;
 }

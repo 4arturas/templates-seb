@@ -81,32 +81,32 @@ databaseChangeLog:
                   name: date_created
                   type: timestamp
                   constraints:
-                    nullable: false
+                    nullable: true
               - column:
                   name: date_updated
                   type: timestamp
                   constraints:
-                    nullable: false
+                    nullable: true
               - column:
                   name: user_id
                   type: int
                   constraints:
-                    nullable: false
+                    nullable: true
               - column:
                   name: tribe_id
                   type: int
                   constraints:
-                    nullable: false
+                    nullable: true
               - column:
                   name: name
                   type: varchar(255)
                   constraints:
-                    nullable: false
+                    nullable: true
               - column:
                   name: content
                   type: text
                   constraints:
-                    nullable: false
+                    nullable: true
         - addPrimaryKey:
             columnNames: id, rev
             tableName: templates_audit

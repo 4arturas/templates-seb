@@ -16,41 +16,75 @@
 <div class="container mt-5">
     <h1 class="mb-4">Template Manager</h1>
 
-    <!-- Templates List -->
-    <div>
-        <button class="btn btn-primary mb-3" ng-click="showUploadNew()">Upload New Template</button>
-        <table class="table table-striped" ng-show="templates.length > 0">
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>User ID</th>
-                <th>Tribe ID</th>
-                <th>Date Created</th>
-                <th>Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr ng-repeat="template in templates">
-                <td>{{ template.id }}</td>
-                <td>{{ template.name }}</td>
-                <td>{{ template.userId }}</td>
-                <td>{{ template.tribeId }}</td>
-                <td>{{ template.dateCreated | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-                <td>
-                    <button class="btn btn-primary btn-sm mr-2" ng-click="editTemplate(template)">Edit</button>
-                    <button class="btn btn-danger btn-sm mr-2" ng-click="showConfirmation(template.id)">Delete</button>
-                    <button class="btn btn-info btn-sm" ng-click="viewContent(template.id)">View Content</button>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-        <div ng-show="loading">Loading...</div>
-        <div ng-show="templates.length == 0 && !loading">No templates available.</div>
+    <div class="mb-3">
+        <button class="btn btn-primary" ng-click="showUploadNew()">Upload New Template</button>
     </div>
+
+    <div class="input-group mb-3">
+        <input type="text" class="form-control" placeholder="Search templates..." ng-model="searchQuery" ng-change="applyFiltersAndSorting()">
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th ng-repeat="column in listOfColumns">
+                <span ng-click="sort(column)" style="cursor: pointer;">
+                    {{ column.name }}
+                    <span ng-if="column.sortOrder === 'ascend'">▲</span>
+                    <span ng-if="column.sortOrder === 'descend'">▼</span>
+                </span>
+                <div ng-if="column.listOfFilter.length > 0 || column.filterFn">
+                    <div ng-repeat="filter in column.listOfFilter">
+                        <label>
+                            <input type="checkbox" ng-model="filter.checked" ng-change="applyFiltersAndSorting()">
+                            {{ filter.text }}
+                        </label>
+                    </div>
+                </div>
+            </th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="template in paginatedTemplates = (filteredTemplates | startFrom:(currentPage - 1) * pageSize | limitTo:pageSize)">
+            <td>{{ template.id }}</td>
+            <td>{{ template.name }}</td>
+            <td>{{ template.userId }}</td>
+            <td>{{ template.tribeId }}</td>
+            <td>{{ template.dateCreated | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+            <td>
+                <button class="btn btn-primary btn-sm mr-2" ng-click="editTemplate(template)">Edit</button>
+                <button class="btn btn-danger btn-sm mr-2" ng-click="showConfirmation(template.id)">Delete</button>
+                <button class="btn btn-info btn-sm" ng-click="viewContent(template.id)">View Content</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <nav aria-label="Page navigation" ng-if="totalPages > 1">
+        <ul class="pagination justify-content-center">
+            <li class="page-item" ng-class="{disabled: currentPage == 1}">
+                <a class="page-link" href="#" ng-click="setCurrentPage(1)">First</a>
+            </li>
+            <li class="page-item" ng-class="{disabled: currentPage == 1}">
+                <a class="page-link" href="#" ng-click="setCurrentPage(currentPage - 1)">Previous</a>
+            </li>
+            <li class="page-item" ng-repeat="page in pages" ng-class="{active: page == currentPage}">
+                <a class="page-link" href="#" ng-click="setCurrentPage(page)">{{ page }}</a>
+            </li>
+            <li class="page-item" ng-class="{disabled: currentPage == totalPages}">
+                <a class="page-link" href="#" ng-click="setCurrentPage(currentPage + 1)">Next</a>
+            </li>
+            <li class="page-item" ng-class="{disabled: currentPage == totalPages}">
+                <a class="page-link" href="#" ng-click="setCurrentPage(totalPages)">Last</a>
+            </li>
+        </ul>
+    </nav>
+
+    <div ng-show="loading">Loading...</div>
+    <div ng-show="paginatedTemplates.length == 0 && !loading">No templates available.</div>
 </div>
 
-<!-- Confirmation Modal -->
 <div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -71,7 +105,6 @@
     </div>
 </div>
 
-<!-- Combined Edit/Upload Modal -->
 <div class="modal fade" id="actionModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -101,7 +134,6 @@
     </div>
 </div>
 
-<!-- View Content Modal -->
 <div class="modal fade" id="contentModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -123,10 +155,10 @@
 
 <style>
     .modal-lg {
-        max-width: 90%; /* Make the modal larger */
+        max-width: 90%;
     }
     pre {
-        white-space: pre-wrap; /* Wrap long lines */
+        white-space: pre-wrap;
         word-wrap: break-word;
         background-color: #f8f9fa;
         padding: 15px;
