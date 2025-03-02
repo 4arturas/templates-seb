@@ -9,7 +9,6 @@ angular.module('templateApp', ['ui.bootstrap'])
         $scope.modalConfirmAction = null;
         $scope.searchQuery = "";
 
-        // Sorting and Filtering variables using the ng-zorro-antd style approach
         $scope.listOfColumns = [
             {
                 name: 'ID',
@@ -58,11 +57,9 @@ angular.module('templateApp', ['ui.bootstrap'])
             }
         ];
 
-        // Pagination variables
         $scope.currentPage = 1;
         $scope.pageSize = 5;
 
-        // Fetch all templates
         $scope.getTemplates = function() {
             $scope.loading = true;
             $http.get('/api/templates')
@@ -81,11 +78,9 @@ angular.module('templateApp', ['ui.bootstrap'])
 
         $scope.getTemplates();
 
-        // Apply filters and sorting
         $scope.applyFiltersAndSorting = function() {
             let filtered = $scope.templates;
 
-            // Apply search query filter
             if ($scope.searchQuery) {
                 const query = $scope.searchQuery.toLowerCase();
                 filtered = filtered.filter(template =>
@@ -96,7 +91,6 @@ angular.module('templateApp', ['ui.bootstrap'])
                 );
             }
 
-            // Apply column-specific filters
             $scope.listOfColumns.forEach(column => {
                 if (column.filterFn && column.listOfFilter.length > 0) {
                     const filterValues = column.listOfFilter.filter(f => f.checked).map(f => f.value);
@@ -106,7 +100,6 @@ angular.module('templateApp', ['ui.bootstrap'])
                 }
             });
 
-            // Apply sorting
             const sortColumn = $scope.listOfColumns.find(c => c.sortOrder === 'ascend' || c.sortOrder === 'descend');
             if (sortColumn && sortColumn.sortFn) {
                 const sortOrder = sortColumn.sortOrder === 'ascend' ? 1 : -1;
@@ -119,7 +112,6 @@ angular.module('templateApp', ['ui.bootstrap'])
             $scope.currentPage = 1; // Reset to first page after filter/sort
         };
 
-        // Sorting
         $scope.sort = function(column) {
             if (column.sortOrder === null) {
                 column.sortOrder = 'ascend';
@@ -129,7 +121,6 @@ angular.module('templateApp', ['ui.bootstrap'])
                 column.sortOrder = null;
             }
 
-            // Reset other column sort orders
             $scope.listOfColumns.forEach(c => {
                 if (c !== column) {
                     c.sortOrder = null;
@@ -139,14 +130,12 @@ angular.module('templateApp', ['ui.bootstrap'])
             $scope.applyFiltersAndSorting();
         };
 
-        // Pagination
         $scope.setCurrentPage = function(page) {
             if (page >= 1 && page <= $scope.totalPages) {
                 $scope.currentPage = page;
             }
         };
 
-        // Filter
         $scope.filter = function(column, filterValue) {
             if (column.listOfFilter.find(f => f.value === filterValue)) {
                 column.listOfFilter.find(f => f.value === filterValue).checked = !column.listOfFilter.find(f => f.value === filterValue).checked;
@@ -156,7 +145,6 @@ angular.module('templateApp', ['ui.bootstrap'])
             $scope.applyFiltersAndSorting();
         };
 
-        // Show confirmation modal for deletion
         $scope.showConfirmation = function(templateId) {
             $scope.modalTitle = "Confirm Deletion";
             $scope.modalMessage = "Are you sure you want to delete this template?";
@@ -166,7 +154,6 @@ angular.module('templateApp', ['ui.bootstrap'])
             $('#confirmationModal').modal('show');
         };
 
-        // Confirm deletion
         $scope.confirmDelete = function(templateId) {
             $http.delete('/api/templates/' + templateId)
                 .then(function() {
@@ -179,20 +166,18 @@ angular.module('templateApp', ['ui.bootstrap'])
                 });
         };
 
-        // Show edit/upload modal
         $scope.editTemplate = function(template) {
             $scope.modalTitle = "Edit Template";
-            $scope.currentTemplateData = angular.copy(template); // Pre-fill data for editing
+            $scope.currentTemplateData = angular.copy(template);
             $('#actionModal').modal('show');
         };
 
         $scope.showUploadNew = function() {
             $scope.modalTitle = "Upload New Template";
-            $scope.currentTemplateData = {}; // Clear data for new upload
+            $scope.currentTemplateData = {};
             $('#actionModal').modal('show');
         };
 
-        // Confirm action (edit or upload)
         $scope.confirmAction = function() {
             if (!$scope.currentTemplateData.name) {
                 alert("Please provide a template name.");
@@ -212,7 +197,7 @@ angular.module('templateApp', ['ui.bootstrap'])
                 reader.onload = function(event) {
                     data.content = event.target.result;
 
-                    if ($scope.currentTemplateData.id) { // Editing an existingif ($scope.currentTemplateData.id) { // Editing an existing template
+                    if ($scope.currentTemplateData.id) {
                         $http.put('/api/templates/' + $scope.currentTemplateData.id, data)
                             .then(function() {
                                 $scope.getTemplates();
@@ -220,7 +205,7 @@ angular.module('templateApp', ['ui.bootstrap'])
                             }, function(error) {
                                 handleErrorResponse(error);
                             });
-                    } else { // Uploading a new template
+                    } else {
                         $http.post('/api/templates', data)
                             .then(function() {
                                 $scope.getTemplates();
@@ -237,7 +222,7 @@ angular.module('templateApp', ['ui.bootstrap'])
 
                 reader.readAsText(file);
             } else {
-                if ($scope.currentTemplateData.id) { // Editing without a file update
+                if ($scope.currentTemplateData.id) {
                     $http.put('/api/templates/' + $scope.currentTemplateData.id, data)
                         .then(function() {
                             $scope.getTemplates();
@@ -251,35 +236,31 @@ angular.module('templateApp', ['ui.bootstrap'])
             }
         };
 
-        // Cancel action
         $scope.cancelAction = function() {
             $('#actionModal').modal('hide');
-            $scope.currentTemplateData = {}; // Reset data
+            $scope.currentTemplateData = {};
             var fileInput = document.getElementById('templateFile');
             if (fileInput) {
-                fileInput.value = ''; // Clear file input
+                fileInput.value = '';
             }
         };
 
-        // Modal confirm action
         $scope.modalConfirm = function() {
             if ($scope.modalConfirmAction) {
-                $scope.modalConfirmAction(); // Execute the confirm action
+                $scope.modalConfirmAction();
             }
         };
 
-        // View template content
         $scope.viewContent = function(templateId) {
             $http.get('/api/templates/' + templateId)
                 .then(function(response) {
-                    $scope.templateContent = response.data.content; // Set the content for the modal
-                    $('#contentModal').modal('show'); // Show the content modal
+                    $scope.templateContent = response.data.content;
+                    $('#contentModal').modal('show');
                 }, function(error) {
-                    handleErrorResponse(error); // Handle errors gracefully
+                    handleErrorResponse(error);
                 });
         };
 
-        // Centralized error handling function
         function handleErrorResponse(error) {
             let errorMessage = "An unknown error occurred.";
             if (error && error.data) {
